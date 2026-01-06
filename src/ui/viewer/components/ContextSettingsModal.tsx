@@ -456,17 +456,26 @@ export function ContextSettingsModal({
                     />
                   </FormField>
                   <FormField
-                    label="Gemini Model"
-                    tooltip="Gemini model used for generating observations"
+                    label="Gemini Base URL"
+                    tooltip="Custom API endpoint (leave empty for official Google API)"
                   >
-                    <select
+                    <input
+                      type="text"
+                      value={formState.CLAUDE_MEM_GEMINI_BASE_URL || ''}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_GEMINI_BASE_URL', e.target.value)}
+                      placeholder="https://generativelanguage.googleapis.com/v1beta/models"
+                    />
+                  </FormField>
+                  <FormField
+                    label="Gemini Model"
+                    tooltip="Gemini model name (e.g., gemini-2.5-flash, gemini-3-flash-preview)"
+                  >
+                    <input
+                      type="text"
                       value={formState.CLAUDE_MEM_GEMINI_MODEL || 'gemini-2.5-flash-lite'}
                       onChange={(e) => updateSetting('CLAUDE_MEM_GEMINI_MODEL', e.target.value)}
-                    >
-                      <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (10 RPM free)</option>
-                      <option value="gemini-2.5-flash">gemini-2.5-flash (5 RPM free)</option>
-                      <option value="gemini-3-flash">gemini-3-flash (5 RPM free)</option>
-                    </select>
+                      placeholder="gemini-2.5-flash-lite"
+                    />
                   </FormField>
                   <div className="toggle-group" style={{ marginTop: '8px' }}>
                     <ToggleSwitch

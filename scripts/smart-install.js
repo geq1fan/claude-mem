@@ -230,6 +230,10 @@ function installDeps() {
 
   console.error('📦 Installing dependencies with Bun...');
 
+  // 删除旧的 bun.lock 以防止版本更新后卡住
+  const bunLockPath = join(ROOT, 'bun.lock');
+  if (existsSync(bunLockPath)) { try { require('fs').unlinkSync(bunLockPath); console.error('🧹 Removed stale bun.lock'); } catch {} }
+
   // Quote path for Windows paths with spaces
   const bunCmd = IS_WINDOWS && bunPath.includes(' ') ? `"${bunPath}"` : bunPath;
 

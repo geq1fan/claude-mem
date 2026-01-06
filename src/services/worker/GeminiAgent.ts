@@ -27,8 +27,8 @@ import {
   type FallbackAgent
 } from './agents/index.js';
 
-// Gemini API endpoint
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Default Gemini API endpoint
+const DEFAULT_GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Gemini model types (available via API)
 export type GeminiModel =
@@ -57,13 +57,13 @@ let lastRequestTime = 0;
  * Waits the required time between requests based on model's RPM limit + 100ms safety buffer.
  * Skipped entirely if rate limiting is disabled (billing users with 1000+ RPM available).
  */
-async function enforceRateLimitForModel(model: GeminiModel, rateLimitingEnabled: boolean): Promise<void> {
+async function enforceRateLimitForModel(model: string, rateLimitingEnabled: boolean): Promise<void> {
   // Skip rate limiting if disabled (billing users with 1000+ RPM)
   if (!rateLimitingEnabled) {
     return;
   }
 
-  const rpm = GEMINI_RPM_LIMITS[model] || 5;
+  const rpm = GEMINI_RPM_LIMITS[model as GeminiModel] || 5;
   const minimumDelayMs = Math.ceil(60000 / rpm) + 100; // (60s / RPM) + 100ms safety buffer
 
   const now = Date.now();
@@ -127,7 +127,7 @@ export class GeminiAgent {
   async startSession(session: ActiveSession, worker?: WorkerRef): Promise<void> {
     try {
       // Get Gemini configuration
-      const { apiKey, model, rateLimitingEnabled } = this.getGeminiConfig();
+      const { apiKey, baseUrl, model, rateLimitingEnabled } = this.getGeminiConfig();
 
       if (!apiKey) {
         throw new Error('Gemini API key not configured. Set CLAUDE_MEM_GEMINI_API_KEY in settings or GEMINI_API_KEY environment variable.');
@@ -143,7 +143,7 @@ export class GeminiAgent {
 
       // Add to conversation history and query Gemini with full context
       session.conversationHistory.push({ role: 'user', content: initPrompt });
-      const initResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, model, rateLimitingEnabled);
+      const initResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, baseUrl, model, rateLimitingEnabled);
 
       if (initResponse.content) {
         // Add response to conversation history
@@ -203,7 +203,7 @@ export class GeminiAgent {
 
           // Add to conversation history and query Gemini with full context
           session.conversationHistory.push({ role: 'user', content: obsPrompt });
-          const obsResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, model, rateLimitingEnabled);
+          const obsResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, baseUrl, model, rateLimitingEnabled);
 
           let tokensUsed = 0;
           if (obsResponse.content) {
@@ -240,7 +240,7 @@ export class GeminiAgent {
 
           // Add to conversation history and query Gemini with full context
           session.conversationHistory.push({ role: 'user', content: summaryPrompt });
-          const summaryResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, model, rateLimitingEnabled);
+          const summaryResponse = await this.queryGeminiMultiTurn(session.conversationHistory, apiKey, baseUrl, model, rateLimitingEnabled);
 
           let tokensUsed = 0;
           if (summaryResponse.content) {
@@ -317,7 +317,8 @@ export class GeminiAgent {
   private async queryGeminiMultiTurn(
     history: ConversationMessage[],
     apiKey: string,
-    model: GeminiModel,
+    baseUrl: string,
+    model: string,
     rateLimitingEnabled: boolean
   ): Promise<{ content: string; tokensUsed?: number }> {
     const contents = this.conversationToGeminiContents(history);
@@ -328,7 +329,7 @@ export class GeminiAgent {
       totalChars
     });
 
-    const url = `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
+    const url = `${baseUrl}/${model}:generateContent?key=${apiKey}`;
 
     // Enforce RPM rate limit for free tier (skipped if rate limiting disabled)
     await enforceRateLimitForModel(model, rateLimitingEnabled);
@@ -368,40 +369,23 @@ export class GeminiAgent {
   /**
    * Get Gemini configuration from settings or environment
    */
-  private getGeminiConfig(): { apiKey: string; model: GeminiModel; rateLimitingEnabled: boolean } {
+  private getGeminiConfig(): { apiKey: string; baseUrl: string; model: string; rateLimitingEnabled: boolean } {
     const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
 
     // API key: check settings first, then environment variable
     const apiKey = settings.CLAUDE_MEM_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
 
-    // Model: from settings or default, with validation
-    const defaultModel: GeminiModel = 'gemini-2.5-flash';
-    const configuredModel = settings.CLAUDE_MEM_GEMINI_MODEL || defaultModel;
-    const validModels: GeminiModel[] = [
-      'gemini-2.5-flash-lite',
-      'gemini-2.5-flash',
-      'gemini-2.5-pro',
-      'gemini-2.0-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-3-flash',
-    ];
+    // Base URL: from settings or default
+    const baseUrl = settings.CLAUDE_MEM_GEMINI_BASE_URL || DEFAULT_GEMINI_API_URL;
 
-    let model: GeminiModel;
-    if (validModels.includes(configuredModel as GeminiModel)) {
-      model = configuredModel as GeminiModel;
-    } else {
-      logger.warn('SDK', `Invalid Gemini model "${configuredModel}", falling back to ${defaultModel}`, {
-        configured: configuredModel,
-        validModels,
-      });
-      model = defaultModel;
-    }
+    // Model: from settings or default (no validation - allow custom models for proxies)
+    const model = settings.CLAUDE_MEM_GEMINI_MODEL || 'gemini-2.5-flash';
 
     // Rate limiting: enabled by default for free tier users
     const rateLimitingEnabled = settings.CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED !== 'false';
 
-    return { apiKey, model, rateLimitingEnabled };
+    return { apiKey, baseUrl, model, rateLimitingEnabled };
   }
 }
 

@@ -92,6 +92,7 @@ export class SettingsRoutes extends BaseRouteHandler {
       // AI Provider Configuration
       'CLAUDE_MEM_PROVIDER',
       'CLAUDE_MEM_GEMINI_API_KEY',
+      'CLAUDE_MEM_GEMINI_BASE_URL',
       'CLAUDE_MEM_GEMINI_MODEL',
       'CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED',
       // OpenRouter Configuration
@@ -239,13 +240,7 @@ export class SettingsRoutes extends BaseRouteHandler {
       }
     }
 
-    // Validate CLAUDE_MEM_GEMINI_MODEL
-    if (settings.CLAUDE_MEM_GEMINI_MODEL) {
-      const validGeminiModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3-flash'];
-      if (!validGeminiModels.includes(settings.CLAUDE_MEM_GEMINI_MODEL)) {
-        return { valid: false, error: 'CLAUDE_MEM_GEMINI_MODEL must be one of: gemini-2.5-flash-lite, gemini-2.5-flash, gemini-3-flash' };
-      }
-    }
+    // CLAUDE_MEM_GEMINI_MODEL: allow any model name for custom proxies
 
     // Validate CLAUDE_MEM_CONTEXT_OBSERVATIONS
     if (settings.CLAUDE_MEM_CONTEXT_OBSERVATIONS) {
