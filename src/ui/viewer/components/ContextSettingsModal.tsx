@@ -414,7 +414,7 @@ export function ContextSettingsModal({
             >
               <FormField
                 label="AI Provider"
-                tooltip="Choose between Claude (via Agent SDK) or Gemini (via REST API)"
+                tooltip="Choose between Claude (via Agent SDK), Gemini (via REST API), OpenRouter (multi-model), or OpenAI Compatible (custom endpoint)"
               >
                 <select
                   value={formState.CLAUDE_MEM_PROVIDER || 'claude'}
@@ -423,6 +423,7 @@ export function ContextSettingsModal({
                   <option value="claude">Claude (uses your Claude account)</option>
                   <option value="gemini">Gemini (uses API key)</option>
                   <option value="openrouter">OpenRouter (multi-model)</option>
+                  <option value="openai-compatible">OpenAI Compatible (custom)</option>
                 </select>
               </FormField>
 
@@ -533,6 +534,44 @@ export function ContextSettingsModal({
                       value={formState.CLAUDE_MEM_OPENROUTER_APP_NAME || 'claude-mem'}
                       onChange={(e) => updateSetting('CLAUDE_MEM_OPENROUTER_APP_NAME', e.target.value)}
                       placeholder="claude-mem"
+                    />
+                  </FormField>
+                </>
+              )}
+
+              {formState.CLAUDE_MEM_PROVIDER === 'openai-compatible' && (
+                <>
+                  <FormField
+                    label="API Key"
+                    tooltip="Your API key for the OpenAI-compatible endpoint"
+                  >
+                    <input
+                      type="password"
+                      value={formState.CLAUDE_MEM_OPENAI_COMPATIBLE_API_KEY || ''}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_OPENAI_COMPATIBLE_API_KEY', e.target.value)}
+                      placeholder="Enter API key..."
+                    />
+                  </FormField>
+                  <FormField
+                    label="Base URL"
+                    tooltip="API endpoint URL (e.g., https://api.openai.com/v1/chat/completions)"
+                  >
+                    <input
+                      type="text"
+                      value={formState.CLAUDE_MEM_OPENAI_COMPATIBLE_BASE_URL || 'https://api.openai.com/v1/chat/completions'}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_OPENAI_COMPATIBLE_BASE_URL', e.target.value)}
+                      placeholder="https://api.openai.com/v1/chat/completions"
+                    />
+                  </FormField>
+                  <FormField
+                    label="Model"
+                    tooltip="Model identifier (e.g., gpt-4o-mini, gpt-4o, gpt-3.5-turbo)"
+                  >
+                    <input
+                      type="text"
+                      value={formState.CLAUDE_MEM_OPENAI_COMPATIBLE_MODEL || 'gpt-4o-mini'}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_OPENAI_COMPATIBLE_MODEL', e.target.value)}
+                      placeholder="gpt-4o-mini"
                     />
                   </FormField>
                 </>

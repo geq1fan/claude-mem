@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Claude-Mem: AI Development Instructions
 
 Claude-mem is a Claude Code plugin providing persistent memory across sessions. It captures tool usage, compresses observations using the Claude Agent SDK, and injects relevant context into future sessions.
@@ -76,3 +80,57 @@ This architecture preserves the open-source nature of the project while enabling
 ## Important
 
 No need to edit the changelog ever, it's generated automatically.
+
+## Fork: OpenAI Compatible Provider
+
+This fork adds support for OpenAI-compatible API endpoints (Azure OpenAI, local models like Ollama/LM Studio, etc.).
+
+### Fork-Specific Files
+
+- `src/services/worker/OpenAICompatibleAgent.ts` - New agent implementation (not in upstream)
+- Settings: `CLAUDE_MEM_OPENAI_COMPATIBLE_*` (API_KEY, BASE_URL, MODEL, MAX_CONTEXT_MESSAGES, MAX_TOKENS)
+
+### Fork Code Markers
+
+All fork-specific modifications are marked with comments for easy identification during sync:
+- `// === Fork: ... ===` - Block markers
+- `/* fork */` - Inline markers
+
+Search for these markers to locate all fork modifications:
+```bash
+grep -r "Fork:" src/ --include="*.ts" --include="*.tsx"
+grep -r "/\* fork \*/" src/ --include="*.ts" --include="*.tsx"
+```
+
+### Upstream Sync Guidelines
+
+When syncing from upstream (thedotmack/claude-mem):
+
+1. **Before Pull**
+   ```bash
+   git stash  # Save local changes
+   git fetch upstream
+   ```
+
+2. **Conflict Resolution Priority**
+   - Accept upstream changes first
+   - Re-apply fork code at **end of files/arrays** (not middle)
+   - Ensure `'openai-compatible'` stays last in type unions
+
+3. **High-Conflict Files** (designed for minimal conflicts)
+   | File | Fork Strategy |
+   |------|---------------|
+   | `SettingsDefaultsManager.ts` | Fork configs at file end |
+   | `SessionRoutes.ts` | Fork param is optional, helper at file end |
+   | `worker-types.ts` | Type appended with `/* fork */` |
+   | `SettingsRoutes.ts` | Array item marked with `/* fork */` |
+
+4. **After Merge**
+   ```bash
+   bun build src/services/worker-service.ts --outdir=/tmp/test --target=bun  # Verify build
+   npm run build-and-sync  # Rebuild plugin
+   ```
+
+5. **If OpenAICompatibleAgent.ts Conflicts**
+   - This file is fork-only, upstream won't have it
+   - If upstream adds similar functionality, consider migrating to their implementation

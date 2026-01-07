@@ -19,7 +19,7 @@ export interface SettingsDefaults {
   CLAUDE_MEM_WORKER_HOST: string;
   CLAUDE_MEM_SKIP_TOOLS: string;
   // AI Provider Configuration
-  CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter'
+  CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter' (fork adds 'openai-compatible')
   CLAUDE_MEM_GEMINI_API_KEY: string;
   CLAUDE_MEM_GEMINI_BASE_URL: string;  // Custom base URL for Gemini API (e.g., for proxies or alternative endpoints)
   CLAUDE_MEM_GEMINI_MODEL: string;  // 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'gemini-3-flash'
@@ -51,6 +51,13 @@ export interface SettingsDefaults {
   // Feature Toggles
   CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY: string;
   CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE: string;
+  CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED: string;  // 是否自动生成子目录 CLAUDE.md 文件
+  // === Fork: OpenAI Compatible Provider Configuration ===
+  CLAUDE_MEM_OPENAI_COMPATIBLE_API_KEY: string;
+  CLAUDE_MEM_OPENAI_COMPATIBLE_BASE_URL: string;  // Custom base URL for OpenAI-compatible API
+  CLAUDE_MEM_OPENAI_COMPATIBLE_MODEL: string;
+  CLAUDE_MEM_OPENAI_COMPATIBLE_MAX_CONTEXT_MESSAGES: string;
+  CLAUDE_MEM_OPENAI_COMPATIBLE_MAX_TOKENS: string;
 }
 
 export class SettingsDefaultsManager {
@@ -96,6 +103,13 @@ export class SettingsDefaultsManager {
     // Feature Toggles
     CLAUDE_MEM_CONTEXT_SHOW_LAST_SUMMARY: 'true',
     CLAUDE_MEM_CONTEXT_SHOW_LAST_MESSAGE: 'false',
+    CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED: 'false',  // 默认关闭，避免生成散落的 CLAUDE.md 文件
+    // === Fork: OpenAI Compatible Provider Configuration ===
+    CLAUDE_MEM_OPENAI_COMPATIBLE_API_KEY: '',  // Empty by default, can be set via UI or env
+    CLAUDE_MEM_OPENAI_COMPATIBLE_BASE_URL: 'https://api.openai.com/v1/chat/completions',  // Default to OpenAI official API
+    CLAUDE_MEM_OPENAI_COMPATIBLE_MODEL: 'gpt-4o-mini',  // Default OpenAI model
+    CLAUDE_MEM_OPENAI_COMPATIBLE_MAX_CONTEXT_MESSAGES: '20',  // Max messages in context window
+    CLAUDE_MEM_OPENAI_COMPATIBLE_MAX_TOKENS: '100000',  // Max estimated tokens (~100k safety limit)
   };
 
   /**

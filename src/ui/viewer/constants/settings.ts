@@ -17,6 +17,9 @@ export const DEFAULT_SETTINGS = {
   CLAUDE_MEM_OPENROUTER_MODEL: 'xiaomi/mimo-v2-flash:free',
   CLAUDE_MEM_OPENROUTER_SITE_URL: '',
   CLAUDE_MEM_OPENROUTER_APP_NAME: 'claude-mem',
+  CLAUDE_MEM_OPENAI_COMPATIBLE_API_KEY: '',
+  CLAUDE_MEM_OPENAI_COMPATIBLE_BASE_URL: 'https://api.openai.com/v1/chat/completions',
+  CLAUDE_MEM_OPENAI_COMPATIBLE_MODEL: 'gpt-4o-mini',
   CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED: 'true',
 
   // Token Economics (all true for backwards compatibility)

@@ -126,6 +126,25 @@ export class GeminiAgent {
    */
   async startSession(session: ActiveSession, worker?: WorkerRef): Promise<void> {
     try {
+      // CRITICAL: For non-SDK agents (Gemini, OpenRouter, OpenAI-compatible),
+      // we must set memory_session_id = contentSessionId before storing observations.
+      // This is because the observations table has a foreign key constraint:
+      //   FOREIGN KEY(memory_session_id) REFERENCES sdk_sessions(memory_session_id)
+      // SDK sessions start with memory_session_id = NULL, so we must set it first.
+      // SDKAgent captures a separate memory_session_id from the SDK response,
+      // but non-SDK agents don't have that - they use contentSessionId directly.
+      if (!session.memorySessionId) {
+        session.memorySessionId = session.contentSessionId;
+        this.dbManager.getSessionStore().updateMemorySessionId(
+          session.sessionDbId,
+          session.contentSessionId
+        );
+        logger.info('SDK', 'Gemini: Set memory_session_id for FK constraint', {
+          sessionDbId: session.sessionDbId,
+          memorySessionId: session.contentSessionId
+        });
+      }
+
       // Get Gemini configuration
       const { apiKey, baseUrl, model, rateLimitingEnabled } = this.getGeminiConfig();
 

@@ -16,6 +16,8 @@ import { parseObservations, parseSummary, type ParsedObservation, type ParsedSum
 import { updateCursorContextForProject } from '../../worker-service.js';
 import { updateFolderClaudeMdFiles } from '../../../utils/claude-md-utils.js';
 import { getWorkerPort } from '../../../shared/worker-utils.js';
+import { SettingsDefaultsManager } from '../../../shared/SettingsDefaultsManager.js';
+import { USER_SETTINGS_PATH } from '../../../shared/paths.js';
 import type { ActiveSession } from '../../worker-types.js';
 import type { DatabaseManager } from '../DatabaseManager.js';
 import type { SessionManager } from '../SessionManager.js';
@@ -69,21 +71,26 @@ export async function processAgentResponse(
   // Get session store for atomic transaction
   const sessionStore = dbManager.getSessionStore();
 
-  // CRITICAL: Must use memorySessionId (not contentSessionId) for FK constraint
-  if (!session.memorySessionId) {
-    throw new Error('Cannot store observations: memorySessionId not yet captured');
+  // CRITICAL: Must use memorySessionId for observation storage due to FK constraint
+  // The observations table has: FOREIGN KEY(memory_session_id) REFERENCES sdk_sessions(memory_session_id)
+  // For SDK agents, memorySessionId is captured from the SDK response
+  // For non-SDK agents (Gemini, OpenRouter, OpenAI-compatible), memorySessionId = contentSessionId (set at session start)
+  const storageSessionId = session.memorySessionId || session.contentSessionId;
+  if (!storageSessionId) {
+    throw new Error('Cannot store observations: neither memorySessionId nor contentSessionId is available');
   }
 
   // Log pre-storage with session ID chain for verification
-  logger.info('DB', `STORING | sessionDbId=${session.sessionDbId} | memorySessionId=${session.memorySessionId} | obsCount=${observations.length} | hasSummary=${!!summaryForStore}`, {
+  logger.info('DB', `STORING | sessionDbId=${session.sessionDbId} | storageSessionId=${storageSessionId} | obsCount=${observations.length} | hasSummary=${!!summaryForStore}`, {
     sessionId: session.sessionDbId,
-    memorySessionId: session.memorySessionId
+    memorySessionId: session.memorySessionId,
+    contentSessionId: session.contentSessionId
   });
 
   // ATOMIC TRANSACTION: Store observations + summary ONCE
   // Messages are already deleted from queue on claim, so no completion tracking needed
   const result = sessionStore.storeObservations(
-    session.memorySessionId,
+    storageSessionId,
     session.project,
     observations,
     summaryForStore,
@@ -93,9 +100,9 @@ export async function processAgentResponse(
   );
 
   // Log storage result with IDs for end-to-end traceability
-  logger.info('DB', `STORED | sessionDbId=${session.sessionDbId} | memorySessionId=${session.memorySessionId} | obsCount=${result.observationIds.length} | obsIds=[${result.observationIds.join(',')}] | summaryId=${result.summaryId || 'none'}`, {
+  logger.info('DB', `STORED | sessionDbId=${session.sessionDbId} | storageSessionId=${storageSessionId} | obsCount=${result.observationIds.length} | obsIds=[${result.observationIds.join(',')}] | summaryId=${result.summaryId || 'none'}`, {
     sessionId: session.sessionDbId,
-    memorySessionId: session.memorySessionId
+    storageSessionId
   });
 
   // AFTER transaction commits - async operations (can fail safely without data loss)
@@ -215,6 +222,14 @@ async function syncAndBroadcastObservations(
 
   // Update folder CLAUDE.md files for touched folders (fire-and-forget)
   // This runs per-observation batch to ensure folders are updated as work happens
+  // 检查开关：只有当 CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED 为 true 时才生成
+  const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
+  const folderClaudeMdEnabled = settings.CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED === 'true';
+
+  if (!folderClaudeMdEnabled) {
+    return; // 功能已关闭，跳过生成
+  }
+
   const allFilePaths: string[] = [];
   for (const obs of observations) {
     allFilePaths.push(...(obs.files_modified || []));
