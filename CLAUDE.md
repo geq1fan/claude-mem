@@ -104,7 +104,11 @@ grep -r "/\* fork \*/" src/ --include="*.ts" --include="*.tsx"
 
 ### Upstream Sync Guidelines
 
-When syncing from upstream (thedotmack/claude-mem):
+When syncing from upstream (thedotmack/claude-mem → geq1fan/claude-mem):
+
+**Remote Configuration**:
+- `origin`: https://github.com/geq1fan/claude-mem.git (your fork)
+- `upstream`: https://github.com/thedotmack/claude-mem.git (original repo)
 
 1. **Before Pull**
    ```bash
