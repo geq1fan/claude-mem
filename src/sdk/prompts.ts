@@ -5,6 +5,12 @@
 
 import { logger } from '../utils/logger.js';
 import type { ModeConfig } from '../services/domain/types.js';
+import { SettingsDefaultsManager } from '../shared/SettingsDefaultsManager.js';
+import { USER_SETTINGS_PATH } from '../shared/paths.js';
+
+// === Fork: Token estimation (approx 4 chars per token) ===
+const CHARS_PER_TOKEN = 4;
+const DEFAULT_MAX_TOKENS = 100000;
 
 export interface Observation {
   id: number;
@@ -89,6 +95,10 @@ ${mode.prompts.header_memory_start}`;
  * Build prompt to send tool observation to SDK agent
  */
 export function buildObservationPrompt(obs: Observation): string {
+  // === Fork: Load max tokens limit ===
+  const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
+  const maxTokens = parseInt(settings.CLAUDE_MEM_OPENAI_COMPATIBLE_MAX_TOKENS) || DEFAULT_MAX_TOKENS;
+
   // Safely parse tool_input and tool_output - they're already JSON strings
   let toolInput: any;
   let toolOutput: any;
@@ -111,11 +121,23 @@ export function buildObservationPrompt(obs: Observation): string {
     toolOutput = obs.tool_output;
   }
 
+  // === Fork: Skip large tool outputs to prevent token overflow ===
+  let outputStr = JSON.stringify(toolOutput, null, 2);
+  const estimatedTokens = Math.ceil(outputStr.length / CHARS_PER_TOKEN);
+  if (estimatedTokens > maxTokens) {
+    logger.warn('SDK', 'Tool output skipped due to token limit', {
+      toolName: obs.tool_name,
+      estimatedTokens,
+      maxTokens
+    });
+    outputStr = `[skipped: output ~${estimatedTokens} tokens exceeded limit ${maxTokens}]`;
+  }
+
   return `<observed_from_primary_session>
   <what_happened>${obs.tool_name}</what_happened>
   <occurred_at>${new Date(obs.created_at_epoch).toISOString()}</occurred_at>${obs.cwd ? `\n  <working_directory>${obs.cwd}</working_directory>` : ''}
   <parameters>${JSON.stringify(toolInput, null, 2)}</parameters>
-  <outcome>${JSON.stringify(toolOutput, null, 2)}</outcome>
+  <outcome>${outputStr}</outcome>
 </observed_from_primary_session>`;
 }
 
