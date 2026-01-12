@@ -185,7 +185,7 @@ export class GeminiAgent {
           'Gemini'
         );
       } else {
-        logger.warn('SDK', 'Empty Gemini init response - session may lack context', {
+        logger.error('SDK', 'Empty Gemini init response - session may lack context', {
           sessionId: session.sessionDbId,
           model
         });
@@ -375,7 +375,7 @@ export class GeminiAgent {
     const data = await response.json() as GeminiResponse;
 
     if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      logger.warn('SDK', 'Empty response from Gemini');
+      logger.error('SDK', 'Empty response from Gemini');
       return { content: '' };
     }
 

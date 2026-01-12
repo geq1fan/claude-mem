@@ -144,7 +144,7 @@ export class OpenRouterAgent {
           undefined  // No lastCwd yet - before message processing
         );
       } else {
-        logger.warn('SDK', 'Empty OpenRouter init response - session may lack context', {
+        logger.error('SDK', 'Empty OpenRouter init response - session may lack context', {
           sessionId: session.sessionDbId,
           model
         });
@@ -391,7 +391,7 @@ export class OpenRouterAgent {
     }
 
     if (!data.choices?.[0]?.message?.content) {
-      logger.warn('SDK', 'Empty response from OpenRouter');
+      logger.error('SDK', 'Empty response from OpenRouter');
       return { content: '' };
     }
 

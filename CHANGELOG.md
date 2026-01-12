@@ -2,6 +2,100 @@
 
 All notable changes to claude-mem.
 
+## [v9.0.4] - 2026-01-10
+
+## What's New
+
+This release adds the `/do` and `/make-plan` development commands to the plugin distribution, making them available to all users who install the plugin from the marketplace.
+
+### Features
+
+- **Development Commands Now Distributed with Plugin** (#666)
+  - `/do` command - Execute tasks with structured workflow
+  - `/make-plan` command - Create detailed implementation plans
+  - Commands now available at `plugin/commands/` for all users
+
+### Documentation
+
+- Revised Arabic README for clarity and corrections (#661)
+
+### Full Changelog
+
+https://github.com/thedotmack/claude-mem/compare/v9.0.3...v9.0.4
+
+## [v9.0.3] - 2026-01-10
+
+## Bug Fixes
+
+### Hook Framework JSON Status Output (#655)
+
+Fixed an issue where the worker service startup wasn't producing proper JSON status output for the Claude Code hook framework. This caused hooks to appear stuck or unresponsive during worker initialization.
+
+**Changes:**
+- Added `buildStatusOutput()` function for generating structured JSON status output
+- Worker now outputs JSON with `status`, `message`, and `continue` fields on stdout
+- Proper exit code 0 ensures Windows Terminal compatibility (no tab accumulation)
+- `continue: true` flag ensures Claude Code continues processing after hook execution
+
+**Technical Details:**
+- Extracted status output generation into a pure, testable function
+- Added comprehensive test coverage in `tests/infrastructure/worker-json-status.test.ts`
+- 23 passing tests covering unit, CLI integration, and hook framework compatibility
+
+## Housekeeping
+
+- Removed obsolete error handling baseline file
+
+## [v9.0.2] - 2026-01-10
+
+## Bug Fixes
+
+- **Windows Terminal Tab Accumulation (#625, #628)**: Fixed terminal tab accumulation on Windows by implementing graceful exit strategy. All expected failure scenarios (port conflicts, version mismatches, health check timeouts) now exit with code 0 instead of code 1.
+- **Windows 11 Compatibility (#625)**: Replaced deprecated WMIC commands with PowerShell `Get-Process` and `Get-CimInstance` for process enumeration. WMIC is being removed from Windows 11.
+
+## Maintenance
+
+- **Removed Obsolete CLAUDE.md Files**: Cleaned up auto-generated CLAUDE.md files from `~/.claude/plans/` and `~/.claude/plugins/marketplaces/` directories.
+
+---
+
+**Full Changelog**: https://github.com/thedotmack/claude-mem/compare/v9.0.1...v9.0.2
+
+## [v9.0.1] - 2026-01-08
+
+## Bug Fixes
+
+### Claude Code 2.1.1 Compatibility
+- Fixed hook architecture for compatibility with Claude Code 2.1.0/2.1.1
+- Context is now injected silently via SessionStart hook
+- Removed deprecated `user-message-hook` (no longer used in CC 2.1.0+)
+
+### Path Validation for CLAUDE.md Distribution
+- Added `isValidPathForClaudeMd()` to reject malformed paths:
+  - Tilde paths (`~`) that Node.js doesn't expand
+  - URLs (`http://`, `https://`)
+  - Paths with spaces (likely command text or PR references)
+  - Paths with `#` (GitHub issue/PR references)
+  - Relative paths that escape project boundary
+- Cleaned up 12 invalid CLAUDE.md files created by bug artifacts
+- Updated `.gitignore` to prevent future accidents
+
+### Log-Level Audit
+- Promoted 38+ WARN messages to ERROR level for improved debugging:
+  - Parser: observation type errors, data contamination
+  - SDK/Agents: empty init responses (Gemini, OpenRouter)
+  - Worker/Queue: session recovery, auto-recovery failures
+  - Chroma: sync failures, search failures
+  - SQLite: search failures
+  - Session/Generator: failures, missing context
+  - Infrastructure: shutdown, process management failures
+
+## Internal Changes
+- Removed hardcoded fake token counts from context injection
+- Standardized Claude Code 2.1.0 note wording across documentation
+
+**Full Changelog**: https://github.com/thedotmack/claude-mem/compare/v9.0.0...v9.0.1
+
 ## [v9.0.0] - 2026-01-06
 
 ## 🚀 Live Context System
@@ -1207,60 +1301,4 @@ Fixed unbounded database growth in the `pending_messages` table by implementing 
 ---
 
 **Full Changelog**: https://github.com/thedotmack/claude-mem/compare/v7.3.0...v7.3.1
-
-## [v7.3.0] - 2025-12-16
-
-## Features
-
-- **Table-based search output**: Unified timeline formatting with cleaner, more organized presentation of search results grouped by date and file
-- **Simplified API**: Removed unused format parameter from MCP search tools for cleaner interface
-- **Shared formatting utilities**: Extracted common timeline formatting logic into reusable module
-- **Batch observations endpoint**: Added `/api/observations/batch` endpoint for efficient retrieval of multiple observations by ID array
-
-## Changes
-
-- **Default model upgrade**: Changed default model from Haiku to Sonnet for better observation quality
-- **Removed fake URIs**: Replaced claude-mem:// pseudo-protocol with actual HTTP API endpoints for citations
-
-## Bug Fixes
-
-- Fixed undefined debug function calls in MCP server
-- Fixed skillPath variable scoping bug in instructions endpoint
-- Extracted magic numbers to named constants for better code maintainability
-
-**Full Changelog**: https://github.com/thedotmack/claude-mem/compare/v7.2.4...v7.3.0
-
-## [v7.2.4] - 2025-12-15
-
-## What's Changed
-
-### Documentation
-- Updated endless mode setup instructions with improved configuration guidance for better user experience
-
-**Full Changelog**: https://github.com/thedotmack/claude-mem/compare/v7.2.3...v7.2.4
-
-## [v7.2.3] - 2025-12-15
-
-## Bug Fixes
-
-- **Fix MCP server failures on plugin updates**: Add 2-second pre-restart delay in `ensureWorkerVersionMatches()` to give files time to sync before killing the old worker. This prevents the race condition where the worker restart happened too quickly after plugin file updates, causing "Worker service connection failed" errors.
-
-## Changes
-
-- Add `PRE_RESTART_SETTLE_DELAY` constant (2000ms) to `hook-constants.ts`
-- Add delay before `ProcessManager.restart()` call in `worker-utils.ts`
-- Fix pre-existing bug where `port` variable was undefined in error logging
-
----
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-## [v7.2.2] - 2025-12-15
-
-## Changes
-
-- **Refactor:** Consolidate mem-search skill, remove desktop-skill duplication
-  - Delete separate `desktop-skill/` directory (was outdated)
-  - Generate `mem-search.zip` during build from `plugin/skills/mem-search/`
-  - Update docs with correct MCP tool list and new download path
-  - Single source of truth for Claude Desktop skill
 
